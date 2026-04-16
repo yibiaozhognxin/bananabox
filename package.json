@@ -1,0 +1,12 @@
+{
+  "name": "nanobanana-tool",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "sharp": "^0.33.5"
+  },
+  "scripts": {
+    "backfill:thumbnails": "node backfill-thumbnails.js",
+    "start": "node server.js"
+  }
+}

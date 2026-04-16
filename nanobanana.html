@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nano Banana Studio</title>
+    <link rel="stylesheet" href="./nanobanana.css">
+</head>
+<body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <div class="userbar" id="userBar">
+        <div class="userbar-badge" id="userBadge">
+            <span class="userbar-label">用户ID</span>
+            <strong id="currentUserText">-</strong>
+            <span class="userbar-admin" id="adminBadge" hidden>管理员</span>
+        </div>
+        <button class="userbar-switch secondary" type="button" id="adminSettingsBtn" hidden>设置</button>
+        <button class="userbar-switch" type="button" id="switchUserBtn">切换ID</button>
+    </div>
+
+    <div class="app-shell">
+        <main class="main-content">
+            <section class="gallery-stage">
+                <div class="waterfall" id="gallery"></div>
+                <div class="history-status" id="historyStatus" hidden></div>
+                <button class="history-load-more" id="loadMoreBtn" type="button" hidden>加载更多</button>
+            </section>
+        </main>
+
+        <section class="composer-dock">
+            <div class="composer-panel">
+                <div class="composer-main">
+                    <div class="prompt-panel">
+                        <textarea id="promptInput" placeholder="上传参考图、输入文字，描述你想生成的图片..."></textarea>
+                    </div>
+                </div>
+
+                <div class="composer-secondary">
+                    <div class="upload-tile compact" id="dropZone">
+                        <div class="upload-tile-inner">
+                            <span class="upload-plus">+</span>
+                            <span class="upload-title">参考图片</span>
+                        </div>
+                        <input type="file" id="fileInput" multiple accept="image/*">
+                    </div>
+
+                    <div class="chip-select quality-chip" id="qualityChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                        <span class="chip-title">分辨率</span>
+                        <span class="chip-value" id="qualityLabel">1K</span>
+                    </div>
+
+                    <div class="quality-popover" id="qualityPopover" hidden>
+                        <div class="quality-grid" id="qualityGrid">
+                            <button class="quality-option active" type="button" data-value="1k" data-label="1K">
+                                <span class="quality-badge">1K</span>
+                                <span class="quality-desc">标准速度</span>
+                            </button>
+                            <button class="quality-option" type="button" data-value="4k" data-label="4K">
+                                <span class="quality-badge">4K</span>
+                                <span class="quality-desc">更高细节</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="chip-select ratio-chip" id="ratioChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                        <span class="chip-title">比例</span>
+                        <span class="chip-value" id="ratioLabel">16:9 宽屏</span>
+                        <input type="hidden" id="ratioSelect" value="16x9">
+                    </div>
+
+                    <div class="ratio-popover" id="ratioPopover" hidden>
+                        <div class="ratio-grid" id="ratioGrid">
+                            <button class="ratio-option" type="button" data-value="16x9" data-label="16:9 宽屏">
+                                <span class="ratio-preview landscape cinema"></span>
+                                <span class="ratio-option-label">16:9</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="9x16" data-label="9:16 竖屏">
+                                <span class="ratio-preview portrait cinema"></span>
+                                <span class="ratio-option-label">9:16</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="21x9" data-label="21:9 超宽">
+                                <span class="ratio-preview landscape ultra"></span>
+                                <span class="ratio-option-label">21:9</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="9x21" data-label="9:21 超长竖图">
+                                <span class="ratio-preview portrait ultra"></span>
+                                <span class="ratio-option-label">9:21</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="4x3" data-label="4:3 标准">
+                                <span class="ratio-preview landscape medium"></span>
+                                <span class="ratio-option-label">4:3</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="3x4" data-label="3:4 人像">
+                                <span class="ratio-preview portrait standard"></span>
+                                <span class="ratio-option-label">3:4</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="3x2" data-label="3:2 横版">
+                                <span class="ratio-preview landscape wide"></span>
+                                <span class="ratio-option-label">3:2</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="2x3" data-label="2:3 竖版">
+                                <span class="ratio-preview portrait wide"></span>
+                                <span class="ratio-option-label">2:3</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="5x4" data-label="5:4 标准">
+                                <span class="ratio-preview landscape poster"></span>
+                                <span class="ratio-option-label">5:4</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="4x5" data-label="4:5 海报">
+                                <span class="ratio-preview portrait medium"></span>
+                                <span class="ratio-option-label">4:5</span>
+                            </button>
+                            <button class="ratio-option active" type="button" data-value="1x1" data-label="1:1">
+                                <span class="ratio-preview square"></span>
+                                <span class="ratio-option-label">1:1</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="8x1" data-label="8:1 超宽横幅">
+                                <span class="ratio-preview landscape extra-banner"></span>
+                                <span class="ratio-option-label">8:1</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="1x8" data-label="1:8 超长图">
+                                <span class="ratio-preview portrait extra-tall"></span>
+                                <span class="ratio-option-label">1:8</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="4x1" data-label="4:1 横幅">
+                                <span class="ratio-preview landscape banner"></span>
+                                <span class="ratio-option-label">4:1</span>
+                            </button>
+                            <button class="ratio-option" type="button" data-value="1x4" data-label="1:4 长图">
+                                <span class="ratio-preview portrait tall"></span>
+                                <span class="ratio-option-label">1:4</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <select id="legacyRatioSelect" aria-label="图片比例" hidden>
+                            <option value="16x9">16:9 宽屏</option>
+                            <option value="9x16">9:16 竖屏</option>
+                            <option value="21x9">21:9 超宽</option>
+                            <option value="9x21">9:21 超长竖图</option>
+                            <option value="4x3">4:3 标准</option>
+                            <option value="3x4">3:4 人像</option>
+                            <option value="1x1">1:1 方形</option>
+                            <option value="3x2">3:2 横版</option>
+                            <option value="2x3">2:3 竖版</option>
+                            <option value="5x4">5:4 标准</option>
+                            <option value="4x5">4:5 海报</option>
+                            <option value="8x1">8:1 超宽横幅</option>
+                            <option value="1x8">1:8 超长图</option>
+                            <option value="4x1">4:1 横幅</option>
+                            <option value="1x4">1:4 长图</option>
+                    </select>
+
+                    <button class="btn-submit" id="submitBtn" onclick="submitTask()">
+                        <span class="btn-submit-label">生成</span>
+                        <span class="btn-submit-icon">↑</span>
+                    </button>
+                </div>
+
+                <div class="preview-list" id="previewList"></div>
+            </div>
+        </section>
+    </div>
+
+    <div class="modal" id="imageModal">
+        <span class="modal-close" onclick="document.getElementById('imageModal').classList.remove('active')">&times;</span>
+        <div class="modal-shell">
+            <div class="modal-image-wrap">
+                <div class="modal-canvas" id="modalCanvas">
+                    <img id="modalImg" src="" alt="Preview">
+                </div>
+            </div>
+            <aside class="modal-sidebar">
+                <div class="modal-meta-top">
+                    <span class="modal-badge" id="modalQuality">1K</span>
+                    <span class="modal-badge" id="modalRatio">1:1</span>
+                    <span class="modal-badge" id="modalCreatedAt">-</span>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-head">
+                        <span class="modal-label">图片生成提示词</span>
+                        <button class="modal-copy-btn" type="button" id="modalCopyPromptBtn">复制提示词</button>
+                    </div>
+                    <div class="modal-prompt" id="modalPrompt">-</div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <div class="editor-modal" id="editorModal">
+        <div class="editor-canvas-area">
+            <div id="canvasWrapper">
+                <canvas id="editorCanvas"></canvas>
+            </div>
+        </div>
+        <div class="editor-sidebar">
+            <div class="editor-header">
+                <span>图片编辑</span>
+                <span class="editor-close" onclick="closeEditor()">×</span>
+            </div>
+            <div class="editor-subtext">
+                使用画笔圈出修改区域，输入修改指令。
+            </div>
+
+            <label>画笔颜色</label>
+            <div class="color-picker" id="colorPicker">
+                <div class="color-btn active" style="background: #ef4444;" data-color="#ef4444" data-name="红色区域"></div>
+                <div class="color-btn" style="background: #10b981;" data-color="#10b981" data-name="绿色区域"></div>
+                <div class="color-btn" style="background: #3b82f6;" data-color="#3b82f6" data-name="蓝色区域"></div>
+                <div class="color-btn" style="background: #f59e0b;" data-color="#f59e0b" data-name="黄色区域"></div>
+                <div class="color-btn" style="background: #8b5cf6;" data-color="#8b5cf6" data-name="紫色区域"></div>
+            </div>
+
+            <label>修改规则列表</label>
+            <div class="box-list" id="boxList"></div>
+
+            <div class="editor-actions">
+                <button class="btn-editor btn-cancel" onclick="undoLastPath()">撤回</button>
+                <button class="btn-editor btn-cancel" onclick="closeEditor()">取消</button>
+                <button class="btn-editor btn-confirm" onclick="submitEditorTask()">立即生成</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="user-modal" id="userModal">
+        <div class="user-modal-card">
+            <h2>请输入用户ID</h2>
+            <p>输入用户ID（自定义6-12位数字）后即可作为身份验证登录。同一ID登录访问相同内容。</p>
+            <input id="userIdInput" class="user-modal-input" type="text" inputmode="numeric" placeholder="请输入数字ID" maxlength="20">
+            <div class="user-modal-error" id="userModalError" hidden></div>
+            <div class="user-modal-actions">
+                <button class="user-modal-btn primary" type="button" id="confirmUserBtn">进入工作台</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-modal" id="adminModal">
+        <div class="admin-modal-card">
+            <div class="admin-modal-head">
+                <div>
+                    <h2>用户详情</h2>
+                    <p>只有管理员可查看和修改系统配置。</p>
+                </div>
+                <button class="admin-close-btn" type="button" id="closeAdminModalBtn">关闭</button>
+            </div>
+
+            <div class="admin-panel-grid">
+                <section class="admin-panel-block">
+                    <div class="admin-block-head">
+                        <h3>系统设置</h3>
+                    </div>
+                    <label class="admin-field switch-row">
+                        <span>允许新ID注册</span>
+                        <input type="checkbox" id="allowRegistrationToggle">
+                    </label>
+                    <label class="admin-field">
+                        <span>API URL</span>
+                        <input type="text" id="apiBaseUrlInput" placeholder="">
+                    </label>
+                    <label class="admin-field">
+                        <span>API Key</span>
+                        <div class="admin-secret-row">
+                            <input type="password" id="apiKeyInput" placeholder="请输入 API Key">
+                            <button class="admin-ghost-btn" type="button" id="toggleApiKeyBtn">显示</button>
+                        </div>
+                    </label>
+                    <div class="admin-quality-group" id="adminQualityGroup">
+                        <div class="admin-quality-head">分辨率请求模型ID</div>
+                        <div class="admin-quality-list" id="adminQualityList"></div>
+                    </div>
+                    <div class="admin-actions-row">
+                        <button class="admin-primary-btn" type="button" id="saveAdminSettingsBtn">保存设置</button>
+                    </div>
+                </section>
+
+                <section class="admin-panel-block wide">
+                    <div class="admin-block-head">
+                        <h3>用户详情</h3>
+                        <div class="admin-summary" id="adminSummary">-</div>
+                    </div>
+                    <div class="admin-user-list" id="adminUserList"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="./nanobanana.js"></script>
+</body>
+</html>
