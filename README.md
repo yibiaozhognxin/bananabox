@@ -89,6 +89,7 @@ http://127.0.0.1:3000/nanobanana.html
 ### API URL
 - 用途：上游图像生成接口地址
 - 示例：`https://example.com`
+- 请求的路径为/v1/images/generations
 
 ### API Key
 - 用途：访问上游接口的鉴权密钥
