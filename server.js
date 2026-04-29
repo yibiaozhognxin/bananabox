@@ -388,7 +388,8 @@ function hydrateRuntimeTasksFromHistory() {
             createdAt: record.createdAt || null,
             imageUrl: normalizeRecordPath(record.imageUrl || ''),
             thumbnailUrl: normalizeRecordPath(record.thumbnailUrl || ''),
-            errorMessage: record.errorMessage || ''
+            errorMessage: record.errorMessage || '',
+            requestMeta: record.requestMeta || null
         });
     });
 }
@@ -421,8 +422,9 @@ async function processQueue() {
         };
         if (!task.images || task.images.length === 0) requestBody.n = 1;
         if (task.ratio && task.ratio !== 'ORIGINAL') requestBody.size = task.ratio;
+        let finalSize = requestBody.size || '';
 
-        const upstream = await fetch(requestUrl, {
+        let upstream = await fetch(requestUrl, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${system.apiKey}`,
@@ -433,7 +435,31 @@ async function processQueue() {
 
         if (!upstream.ok) {
             const err = await upstream.json().catch(() => ({}));
-            throw new Error(err.error?.message || err.error || `HTTP ${upstream.status}`);
+            const errMsg = String(err.error?.message || err.error || `HTTP ${upstream.status}`);
+            const needPixelSize = /divisible by 16|invalid.*size/i.test(errMsg) && requestBody.size && !/^\d{2,}x\d{2,}$/.test(requestBody.size);
+            if (needPixelSize) {
+                const pixelSize = ratioToPixelSize(requestBody.size, task.model);
+                if (pixelSize) {
+                    const retryBody = { ...requestBody, size: pixelSize };
+                    upstream = await fetch(requestUrl, {
+                        method: 'POST',
+                        headers: {
+                            Authorization: `Bearer ${system.apiKey}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(retryBody)
+                    });
+                    if (!upstream.ok) {
+                        const retryErr = await upstream.json().catch(() => ({}));
+                        throw new Error(retryErr.error?.message || retryErr.error || `HTTP ${upstream.status}`);
+                    }
+                    finalSize = pixelSize;
+                } else {
+                    throw new Error(errMsg);
+                }
+            } else {
+                throw new Error(errMsg);
+            }
         }
 
         const data = await upstream.json();
@@ -454,7 +480,12 @@ async function processQueue() {
             startedAt: task.startedAt,
             finishedAt: new Date().toISOString(),
             status: 'success',
-            errorMessage: ''
+            errorMessage: '',
+            requestMeta: {
+                apiUrl: requestUrl,
+                modelId: modelId,
+                size: finalSize
+            }
         };
 
         upsertHistoryRecord(record);
@@ -533,7 +564,8 @@ function sanitizeTask(task) {
         finishedAt: task.finishedAt || null,
         createdAt: task.createdAt || null,
         errorMessage: task.errorMessage || '',
-        queuePosition: task.status === 'queued' ? getQueuePosition(task.id) : 0
+        queuePosition: task.status === 'queued' ? getQueuePosition(task.id) : 0,
+        requestMeta: task.requestMeta || null
     };
 }
 
@@ -589,7 +621,8 @@ function upsertHistoryRecord(record) {
         startedAt: record.startedAt || null,
         finishedAt: record.finishedAt || null,
         status: record.status || 'success',
-        errorMessage: record.errorMessage || ''
+        errorMessage: record.errorMessage || '',
+        requestMeta: record.requestMeta || null
     };
     if (index === -1) history.push(normalized);
     else history[index] = normalized;
@@ -945,6 +978,25 @@ function getQualityList(qualities) {
         { key: '2k', label: '2K', ...normalized['2k'] },
         { key: '4k', label: '4K', ...normalized['4k'] }
     ];
+}
+
+function ratioToPixelSize(ratio, qualityKey) {
+    const parts = String(ratio || '').split('x');
+    if (parts.length !== 2) return '';
+    const rw = Number.parseInt(parts[0], 10);
+    const rh = Number.parseInt(parts[1], 10);
+    if (!rw || !rh || rw <= 0 || rh <= 0) return '';
+    const BASE_PIXELS = { '1k': 1920, '2k': 2560, '4k': 3840 };
+    const base = BASE_PIXELS[String(qualityKey || '').toLowerCase()] || 1920;
+    let pixelW, pixelH;
+    if (rw >= rh) {
+        pixelW = base;
+        pixelH = Math.max(16, Math.round(base * rh / rw / 16) * 16);
+    } else {
+        pixelH = base;
+        pixelW = Math.max(16, Math.round(base * rw / rh / 16) * 16);
+    }
+    return `${pixelW}x${pixelH}`;
 }
 
 function removeTaskFromQueue(taskId) {

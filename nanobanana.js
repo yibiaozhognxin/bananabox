@@ -64,6 +64,8 @@ const modalCreatedAtEl = document.getElementById('modalCreatedAt');
 const modalCopyPromptBtn = document.getElementById('modalCopyPromptBtn');
 const imageModal = document.getElementById('imageModal');
 const modalImg = document.getElementById('modalImg');
+const modalRequestSection = document.getElementById('modalRequestSection');
+const modalRequestMeta = document.getElementById('modalRequestMeta');
 const historyStatus = document.getElementById('historyStatus');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
 const userModal = document.getElementById('userModal');
@@ -773,13 +775,32 @@ function openModal(src, task = null) {
         modalQualityEl.textContent = getQualityLabel(task.model);
         modalRatioEl.textContent = formatRatioLabel(task.ratio);
         modalCreatedAtEl.textContent = formatCreatedAt(task.createdAt || task.finishedAt || task.queuedAt);
+        renderRequestMeta(task);
     } else {
         modalPromptEl.textContent = '-';
         modalQualityEl.textContent = '-';
         modalRatioEl.textContent = '-';
         modalCreatedAtEl.textContent = '-';
+        modalRequestSection.hidden = true;
     }
     imageModal.classList.add('active');
+}
+
+function renderRequestMeta(task) {
+    if (!isAdmin() || !task.requestMeta) {
+        modalRequestSection.hidden = true;
+        return;
+    }
+    const meta = task.requestMeta;
+    const sizeDisplay = meta.size || task.ratio || '-';
+    const isPixelSize = /^\d{2,}x\d{2,}$/.test(sizeDisplay);
+    const sizeLabel = isPixelSize ? '像素尺寸' : '图片比例';
+    modalRequestMeta.innerHTML = `
+        <div class="meta-row"><span class="meta-label">请求地址</span><span class="meta-value">${escapeHtml(meta.apiUrl || '-')}</span></div>
+        <div class="meta-row"><span class="meta-label">模型ID</span><span class="meta-value">${escapeHtml(meta.modelId || '-')}</span></div>
+        <div class="meta-row"><span class="meta-label">${sizeLabel}</span><span class="meta-value">${escapeHtml(sizeDisplay)}</span></div>
+    `;
+    modalRequestSection.hidden = false;
 }
 
 function openModalById(id) {
@@ -1564,5 +1585,11 @@ ensureSelectedQuality();
 
 if (modalCopyPromptBtn) modalCopyPromptBtn.addEventListener('click', copyModalPrompt);
 
-localStorage.removeItem(USER_STORAGE_KEY);
-openUserModal(false);
+const savedUserId = localStorage.getItem(USER_STORAGE_KEY);
+if (savedUserId) {
+    openUserModal(false);
+    userIdInput.value = savedUserId;
+    commitUserId();
+} else {
+    openUserModal(false);
+}

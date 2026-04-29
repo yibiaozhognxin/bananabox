@@ -1547,6 +1547,38 @@ textarea::placeholder {
     word-break: break-word;
 }
 
+.modal-request-section {
+    margin-top: 18px;
+}
+
+.modal-request-meta {
+    margin-top: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.modal-request-meta .meta-row {
+    display: flex;
+    gap: 8px;
+}
+
+.modal-request-meta .meta-label {
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+    min-width: 56px;
+}
+
+.modal-request-meta .meta-value {
+    color: rgba(255, 255, 255, 0.85);
+    word-break: break-all;
+    font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+}
+
 .modal-close {
     position: absolute;
     top: 18px;
