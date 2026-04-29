@@ -14,6 +14,7 @@ let adminApiKeyDraft = '';
 let qualitySettingsState = null;
 let selectedQualityKey = '1k';
 let selectedRatioKey = '1x1';
+let selectedCount = 1;
 
 const previewUrlStore = new WeakMap();
 const loadedTaskIds = new Set();
@@ -57,6 +58,10 @@ const qualityGrid = document.getElementById('qualityGrid');
 const ratioChip = document.getElementById('ratioChip');
 const ratioPopover = document.getElementById('ratioPopover');
 const ratioGrid = document.getElementById('ratioGrid');
+const countChip = document.getElementById('countChip');
+const countPopover = document.getElementById('countPopover');
+const countGrid = document.getElementById('countGrid');
+const countLabelEl = document.getElementById('countLabel');
 const modalPromptEl = document.getElementById('modalPrompt');
 const modalQualityEl = document.getElementById('modalQuality');
 const modalRatioEl = document.getElementById('modalRatio');
@@ -344,7 +349,6 @@ function renderQualityOptions() {
 
 function syncQualitySelection() {
     ensureSelectedQuality();
-    const qualities = qualitySettingsState || getDefaultQualitySettings();
     qualityGrid.querySelectorAll('.quality-option').forEach((option) => {
         option.classList.toggle('active', option.dataset.value === selectedQualityKey);
     });
@@ -456,6 +460,8 @@ function removeFile(index) {
     if (removedFile) revokePreviewUrl(removedFile);
     const previewItem = previewList.querySelector(`.preview-item[data-index="${index}"]`);
     if (previewItem) {
+        const imgEl = previewItem.querySelector('img');
+        if (imgEl && imgEl.src && imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
         previewItem.remove();
         updatePreviewIndexes();
         return;
@@ -490,64 +496,68 @@ async function submitTask(options = {}) {
         alert('请输入图片描述');
         return;
     }
-    if (getActiveTaskCount() >= 5) {
+
+    const batchCount = options.keepComposerState ? 1 : Math.max(1, Math.min(4, selectedCount));
+    if (getActiveTaskCount() + batchCount > 5) {
         alert('当前最多同时进行 5 个任务，请等待已有任务完成后再试');
         return;
     }
 
     submitBtn.disabled = true;
-    const taskId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const currentFiles = [...filesToUse];
-    const task = {
-        id: taskId,
-        userId: currentUserId,
-        prompt,
-        model: qualityKey,
-        ratio,
-        status: 'queued',
-        queuedAt: new Date().toISOString(),
-        createdAt: null,
-        imageUrl: '',
-        thumbnailUrl: '',
-        queuePosition: 0
-    };
-
-    tasks.unshift(task);
-    createTaskCard(task, true);
-    syncTaskOrder();
+    const images = currentFiles.length > 0 ? await Promise.all(currentFiles.map((f) => fileToBase64(f))) : [];
 
     if (!options.keepComposerState) {
         promptInput.value = '';
         autoResize(promptInput);
         uploadedFiles = [];
         renderPreview();
-        if (!options.filesOverride) revokeAllPreviewUrls(currentFiles);
+        revokeAllPreviewUrls(currentFiles);
     }
 
     try {
-        const images = currentFiles.length > 0 ? await Promise.all(currentFiles.map((f) => fileToBase64(f))) : [];
-        const res = await fetch(`${API_BASE}/api/generate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        for (let i = 0; i < batchCount; i++) {
+            const taskId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+            const task = {
+                id: taskId,
                 userId: currentUserId,
-                clientTaskId: task.id,
-                model: task.model,
-                prompt: task.prompt,
-                ratio: task.ratio,
-                images
-            })
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-            handleApiError(data, data.error || `HTTP ${res.status}`);
-            throw new Error(data.error || `HTTP ${res.status}`);
+                prompt,
+                model: qualityKey,
+                ratio,
+                status: 'queued',
+                queuedAt: new Date().toISOString(),
+                createdAt: null,
+                imageUrl: '',
+                thumbnailUrl: '',
+                queuePosition: 0
+            };
+
+            tasks.unshift(task);
+            createTaskCard(task, true);
+            syncTaskOrder();
+
+            const res = await fetch(`${API_BASE}/api/generate`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId: currentUserId,
+                    clientTaskId: task.id,
+                    model: task.model,
+                    prompt: task.prompt,
+                    ratio: task.ratio,
+                    images
+                })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                handleApiError(data, data.error || `HTTP ${res.status}`);
+                throw new Error(data.error || `HTTP ${res.status}`);
+            }
+            mergeTaskRecord(data.task || task);
         }
-        mergeTaskRecord(data.task || task);
         await refreshTaskStatuses();
     } catch (error) {
-        markTaskFailed(task.id, error.message || '提交失败');
-        if (!String(error.message || '').includes('HTTP')) alert(error.message || '提交失败');
+        alert(error.message || '提交失败');
     } finally {
         submitBtn.disabled = false;
     }
@@ -586,6 +596,7 @@ function createTaskCard(task, prepend = false) {
                 <span class="card-meta-pill">${modelName} | ${ratioLabel}</span>
                 <div class="action-buttons">
                     <button class="btn-mini" onclick="editSavedImage('${task.id}')" id="edit-${task.id}" style="display:none">编辑</button>
+                    <button class="btn-mini danger" onclick="retryTask('${task.id}')" id="retry-${task.id}" style="display:none">重试</button>
                     <button class="btn-mini primary" id="dl-${task.id}" style="display:none" onclick="downloadImg('${task.id}')">下载</button>
                 </div>
             </div>
@@ -631,6 +642,8 @@ function updateTaskCard(task) {
         if (dlBtn) dlBtn.style.display = 'block';
         if (editBtn) editBtn.style.display = task.imageUrl ? 'block' : 'none';
         if (deleteBtn) deleteBtn.style.display = 'block';
+        const retryBtnSuccess = document.getElementById(`retry-${task.id}`);
+        if (retryBtnSuccess) retryBtnSuccess.style.display = 'none';
         card.classList.remove('is-pending');
         return;
     }
@@ -640,6 +653,8 @@ function updateTaskCard(task) {
     if (timerEl) timerEl.textContent = getStatusLabel(task);
     if (statusTextEl) statusTextEl.textContent = getStatusDescription(task);
     if (deleteBtn) deleteBtn.style.display = task.status === 'failed' ? 'block' : 'none';
+    const retryBtn = document.getElementById(`retry-${task.id}`);
+    if (retryBtn) retryBtn.style.display = task.status === 'failed' ? 'block' : 'none';
     if (editBtn) editBtn.style.display = 'none';
     if (dlBtn) dlBtn.style.display = 'none';
 
@@ -943,6 +958,43 @@ async function deleteSavedImage(id) {
     }
 }
 
+async function retryTask(id) {
+    const task = tasks.find((item) => String(item.id) === String(id));
+    if (!task) return;
+
+    if (getActiveTaskCount() >= 5) {
+        alert('当前最多同时进行 5 个任务，请等待已有任务完成后再试');
+        return;
+    }
+
+    const retryBtn = document.getElementById(`retry-${id}`);
+    if (retryBtn) retryBtn.disabled = true;
+
+    try {
+        const newTaskId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const res = await fetch(`${API_BASE}/api/retry`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId: currentUserId,
+                taskId: id,
+                clientTaskId: newTaskId
+            })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+            handleApiError(data, data.error || `HTTP ${res.status}`);
+            throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        mergeTaskRecord(data.task);
+        await refreshTaskStatuses();
+    } catch (error) {
+        alert(error.message || '重试失败');
+    } finally {
+        if (retryBtn) retryBtn.disabled = false;
+    }
+}
+
 function undoLastPath() {
     if (editorState.paths.length === 0) return;
     const lastPath = editorState.paths.pop();
@@ -1101,6 +1153,12 @@ function submitEditorTask() {
         return;
     }
 
+    const confirmBtn = document.querySelector('.editor-actions .btn-confirm');
+    if (confirmBtn) {
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '处理中...';
+    }
+
     const tempCanvas = document.createElement('canvas');
     const tCtx = tempCanvas.getContext('2d');
     const imgW = editorState.image.naturalWidth;
@@ -1139,7 +1197,14 @@ function submitEditorTask() {
     finalPrompt += ' Note: The colored lines are markup, do not render them. Blend perfectly.';
 
     tempCanvas.toBlob((blob) => {
-        if (!blob) return;
+        if (!blob) {
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = '立即生成';
+            }
+            alert('图片处理失败，请重试');
+            return;
+        }
         const file = new File([blob], 'edited_image.png', { type: 'image/png' });
         closeEditor();
         submitTask({
@@ -1148,6 +1213,10 @@ function submitEditorTask() {
             ratioOverride: 'ORIGINAL',
             keepComposerState: true
         });
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '立即生成';
+        }
     }, 'image/png');
 }
 
@@ -1161,7 +1230,7 @@ async function loadHistory(options = {}) {
         updateHistoryStatus(append ? '正在加载更多图片...' : '正在加载历史记录...');
         syncLoadMoreButton();
         const targetPage = append ? historyState.page + 1 : 1;
-        const res = await fetch(`${API_BASE}/api/history?page=${targetPage}&pageSize=${historyState.pageSize}&userId=${encodeURIComponent(currentUserId)}${getHistoryFilterParams()}`);
+        const res = await fetch(`${API_BASE}/api/history?page=${targetPage}&pageSize=${historyState.pageSize}&userId=${encodeURIComponent(currentUserId)}`);
         if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
             handleApiError(errorData, errorData.error || '历史记录加载失败');
@@ -1278,6 +1347,20 @@ function setRatio(value) {
     syncChipLabels();
 }
 
+function toggleCountPopover(forceState) {
+    const shouldOpen = typeof forceState === 'boolean' ? forceState : countPopover.hidden;
+    countPopover.hidden = !shouldOpen;
+    countChip.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+}
+
+function setCount(value) {
+    selectedCount = Math.max(1, Math.min(4, value || 1));
+    countGrid.querySelectorAll('.count-option').forEach((option) => {
+        option.classList.toggle('active', Number.parseInt(option.dataset.value, 10) === selectedCount);
+    });
+    countLabelEl.textContent = String(selectedCount);
+}
+
 imageModal.addEventListener('click', (event) => {
     if (event.target.id === 'imageModal') imageModal.classList.remove('active');
 });
@@ -1320,9 +1403,30 @@ qualityGrid.addEventListener('click', (event) => {
     toggleQualityPopover(false);
 });
 
+countChip.addEventListener('click', () => {
+    toggleQualityPopover(false);
+    toggleRatioPopover(false);
+    toggleCountPopover();
+});
+
+countChip.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleCountPopover();
+    }
+});
+
+countGrid.addEventListener('click', (event) => {
+    const option = event.target.closest('.count-option');
+    if (!option) return;
+    setCount(Number.parseInt(option.dataset.value, 10));
+    toggleCountPopover(false);
+});
+
 document.addEventListener('click', (event) => {
     if (!ratioPopover.hidden && !event.target.closest('.ratio-chip') && !event.target.closest('.ratio-popover')) toggleRatioPopover(false);
     if (!qualityPopover.hidden && !event.target.closest('.quality-chip') && !event.target.closest('.quality-popover')) toggleQualityPopover(false);
+    if (!countPopover.hidden && !event.target.closest('.count-chip') && !event.target.closest('.count-popover')) toggleCountPopover(false);
 });
 
 function escapeHtml(value) {
@@ -1555,6 +1659,7 @@ window.downloadImg = downloadImg;
 window.copyPrompt = copyPrompt;
 window.editSavedImage = editSavedImage;
 window.deleteSavedImage = deleteSavedImage;
+window.retryTask = retryTask;
 window.autoResize = autoResize;
 
 window.addEventListener('resize', () => {
@@ -1577,7 +1682,7 @@ window.addEventListener('beforeunload', () => {
 renderQualityOptions();
 ensureSelectedQuality();
     syncQualitySelection();
-    setRatio(ratioSelect.value || '16x9');
+    setRatio(ratioSelect.value || ratioSelect.defaultValue || '16x9');
     syncChipLabels();
     syncCurrentUserUi();
     autoResize(promptInput);

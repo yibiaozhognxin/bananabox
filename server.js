@@ -75,6 +75,11 @@ const server = http.createServer(async (req, res) => {
             return handleGenerate(body, res);
         }
 
+        if (req.method === 'POST' && requestUrl.pathname === '/api/retry') {
+            const body = await readJsonBody(req);
+            return handleRetry(body, res);
+        }
+
         if (req.method === 'DELETE' && requestUrl.pathname.startsWith('/api/history/')) {
             const recordId = decodeURIComponent(requestUrl.pathname.slice('/api/history/'.length));
             const userId = parseUserId(requestUrl.searchParams.get('userId'));
@@ -198,6 +203,51 @@ async function handleGenerate(body, res) {
     return json(res, 202, { task: sanitizeTask(task) });
 }
 
+async function handleRetry(body, res) {
+    const userId = parseUserId(body.userId);
+    const originalTaskId = String(body.taskId || '').trim();
+
+    if (!userId) return json(res, 400, { error: 'Missing or invalid userId' });
+    if (!originalTaskId) return json(res, 400, { error: 'Missing taskId' });
+
+    const access = ensureUserAccess(userId);
+    if (!access.ok) return json(res, access.statusCode, { error: access.message, code: access.code });
+
+    const activeCount = countUserActiveTasks(userId);
+    if (activeCount >= MAX_ACTIVE_TASKS_PER_USER) {
+        return json(res, 400, { error: `当前最多同时进行 ${MAX_ACTIVE_TASKS_PER_USER} 个任务，请等待已有任务完成后再试` });
+    }
+
+    const original = runtimeTasks.get(String(originalTaskId));
+    if (!original) return json(res, 404, { error: 'Original task not found' });
+    if (!isAdmin(userId) && String(original.userId) !== String(userId)) {
+        return json(res, 404, { error: 'Original task not found' });
+    }
+
+    const clientTaskId = String(body.clientTaskId || '').trim() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const task = {
+        id: clientTaskId,
+        userId,
+        prompt: original.prompt,
+        model: original.model,
+        ratio: original.ratio || '1x1',
+        images: Array.isArray(original.images) ? [...original.images] : [],
+        status: 'queued',
+        queuedAt: new Date().toISOString(),
+        startedAt: null,
+        finishedAt: null,
+        createdAt: null,
+        imageUrl: '',
+        thumbnailUrl: '',
+        errorMessage: ''
+    };
+
+    runtimeTasks.set(task.id, task);
+    pendingQueue.push(task.id);
+    startQueue();
+    return json(res, 202, { task: sanitizeTask(task) });
+}
+
 function handleDeleteHistory(recordId, userId, res) {
     if (!recordId) return json(res, 400, { error: 'Missing record id' });
     const access = ensureUserAccess(userId);
@@ -296,9 +346,8 @@ function handleServeImage(requestPath, searchParams, res) {
 
     const decodedPath = decodeURIComponent(requestPath);
     const filePath = resolveStoredPath(decodedPath);
-    if (!filePath.startsWith(DATA_DIR) && !filePath.startsWith(ROOT_DIR)) {
-        return json(res, 403, { error: 'Forbidden' });
-    }
+
+    if (!filePath.startsWith(DATA_DIR)) return json(res, 403, { error: 'Forbidden' });
 
     if (isAdmin(userId)) return serveFile(filePath, res);
 
@@ -400,7 +449,13 @@ function startQueue() {
 }
 
 async function processQueue() {
-    if (pendingQueue.length === 0) return;
+    if (pendingQueue.length === 0) {
+        if (queueTimer) {
+            clearInterval(queueTimer);
+            queueTimer = null;
+        }
+        return;
+    }
     if (Date.now() - lastSubmitAt < TASK_SUBMIT_INTERVAL) return;
 
     const taskId = pendingQueue.shift();
@@ -496,8 +551,7 @@ async function processQueue() {
             ...task,
             status: 'failed',
             finishedAt: new Date().toISOString(),
-            errorMessage: error.message || '生成失败，请稍后重试',
-            images: []
+            errorMessage: error.message || '生成失败，请稍后重试'
         };
         runtimeTasks.set(String(task.id), failed);
         upsertHistoryRecord({
@@ -1109,7 +1163,12 @@ function serveFile(filePath, res) {
             'Content-Type': getContentType(filePath),
             'Cache-Control': 'no-store'
         });
-        fs.createReadStream(filePath).pipe(res);
+        const stream = fs.createReadStream(filePath);
+        stream.on('error', () => {
+            if (!res.headersSent) json(res, 500, { error: 'Failed to read file' });
+            else res.end();
+        });
+        stream.pipe(res);
     });
 }
 

@@ -46,95 +46,6 @@
                         <input type="file" id="fileInput" multiple accept="image/*">
                     </div>
 
-                    <div class="chip-select quality-chip" id="qualityChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
-                        <span class="chip-title">分辨率</span>
-                        <span class="chip-value" id="qualityLabel">1K</span>
-                    </div>
-
-                    <div class="quality-popover" id="qualityPopover" hidden>
-                        <div class="quality-grid" id="qualityGrid">
-                            <button class="quality-option active" type="button" data-value="1k" data-label="1K">
-                                <span class="quality-badge">1K</span>
-                                <span class="quality-desc">标准速度</span>
-                            </button>
-                            <button class="quality-option" type="button" data-value="4k" data-label="4K">
-                                <span class="quality-badge">4K</span>
-                                <span class="quality-desc">更高细节</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="chip-select ratio-chip" id="ratioChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
-                        <span class="chip-title">比例</span>
-                        <span class="chip-value" id="ratioLabel">16:9 宽屏</span>
-                        <input type="hidden" id="ratioSelect" value="16x9">
-                    </div>
-
-                    <div class="ratio-popover" id="ratioPopover" hidden>
-                        <div class="ratio-grid" id="ratioGrid">
-                            <button class="ratio-option" type="button" data-value="16x9" data-label="16:9 宽屏">
-                                <span class="ratio-preview landscape cinema"></span>
-                                <span class="ratio-option-label">16:9</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="9x16" data-label="9:16 竖屏">
-                                <span class="ratio-preview portrait cinema"></span>
-                                <span class="ratio-option-label">9:16</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="21x9" data-label="21:9 超宽">
-                                <span class="ratio-preview landscape ultra"></span>
-                                <span class="ratio-option-label">21:9</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="9x21" data-label="9:21 超长竖图">
-                                <span class="ratio-preview portrait ultra"></span>
-                                <span class="ratio-option-label">9:21</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="4x3" data-label="4:3 标准">
-                                <span class="ratio-preview landscape medium"></span>
-                                <span class="ratio-option-label">4:3</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="3x4" data-label="3:4 人像">
-                                <span class="ratio-preview portrait standard"></span>
-                                <span class="ratio-option-label">3:4</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="3x2" data-label="3:2 横版">
-                                <span class="ratio-preview landscape wide"></span>
-                                <span class="ratio-option-label">3:2</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="2x3" data-label="2:3 竖版">
-                                <span class="ratio-preview portrait wide"></span>
-                                <span class="ratio-option-label">2:3</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="5x4" data-label="5:4 标准">
-                                <span class="ratio-preview landscape poster"></span>
-                                <span class="ratio-option-label">5:4</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="4x5" data-label="4:5 海报">
-                                <span class="ratio-preview portrait medium"></span>
-                                <span class="ratio-option-label">4:5</span>
-                            </button>
-                            <button class="ratio-option active" type="button" data-value="1x1" data-label="1:1">
-                                <span class="ratio-preview square"></span>
-                                <span class="ratio-option-label">1:1</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="8x1" data-label="8:1 超宽横幅">
-                                <span class="ratio-preview landscape extra-banner"></span>
-                                <span class="ratio-option-label">8:1</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="1x8" data-label="1:8 超长图">
-                                <span class="ratio-preview portrait extra-tall"></span>
-                                <span class="ratio-option-label">1:8</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="4x1" data-label="4:1 横幅">
-                                <span class="ratio-preview landscape banner"></span>
-                                <span class="ratio-option-label">4:1</span>
-                            </button>
-                            <button class="ratio-option" type="button" data-value="1x4" data-label="1:4 长图">
-                                <span class="ratio-preview portrait tall"></span>
-                                <span class="ratio-option-label">1:4</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <select id="legacyRatioSelect" aria-label="图片比例" hidden>
                             <option value="16x9">16:9 宽屏</option>
                             <option value="9x16">9:16 竖屏</option>
@@ -153,10 +64,120 @@
                             <option value="1x4">1:4 长图</option>
                     </select>
 
-                    <button class="btn-submit" id="submitBtn" onclick="submitTask()">
-                        <span class="btn-submit-label">生成</span>
-                        <span class="btn-submit-icon">↑</span>
-                    </button>
+                    <div class="composer-actions">
+                        <div class="chip-group">
+                            <div class="chip-wrap">
+                                <div class="chip-select quality-chip" id="qualityChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                                    <span class="chip-title">分辨率</span>
+                                    <span class="chip-value" id="qualityLabel">1K</span>
+                                </div>
+                                <div class="quality-popover popover" id="qualityPopover" hidden>
+                                    <div class="quality-grid" id="qualityGrid">
+                                        <button class="quality-option active" type="button" data-value="1k" data-label="1K">
+                                            <span class="quality-badge">1K</span>
+                                            <span class="quality-desc">标准速度</span>
+                                        </button>
+                                        <button class="quality-option" type="button" data-value="4k" data-label="4K">
+                                            <span class="quality-badge">4K</span>
+                                            <span class="quality-desc">更高细节</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chip-wrap">
+                                <div class="chip-select ratio-chip" id="ratioChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                                    <span class="chip-title">比例</span>
+                                    <span class="chip-value" id="ratioLabel">16:9 宽屏</span>
+                                    <input type="hidden" id="ratioSelect" value="16x9">
+                                </div>
+                                <div class="ratio-popover popover" id="ratioPopover" hidden>
+                                    <div class="ratio-grid" id="ratioGrid">
+                                        <button class="ratio-option active" type="button" data-value="16x9" data-label="16:9 宽屏">
+                                            <span class="ratio-preview landscape cinema"></span>
+                                            <span class="ratio-option-label">16:9</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="9x16" data-label="9:16 竖屏">
+                                            <span class="ratio-preview portrait cinema"></span>
+                                            <span class="ratio-option-label">9:16</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="21x9" data-label="21:9 超宽">
+                                            <span class="ratio-preview landscape ultra"></span>
+                                            <span class="ratio-option-label">21:9</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="9x21" data-label="9:21 超长竖图">
+                                            <span class="ratio-preview portrait ultra"></span>
+                                            <span class="ratio-option-label">9:21</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="4x3" data-label="4:3 标准">
+                                            <span class="ratio-preview landscape medium"></span>
+                                            <span class="ratio-option-label">4:3</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="3x4" data-label="3:4 人像">
+                                            <span class="ratio-preview portrait standard"></span>
+                                            <span class="ratio-option-label">3:4</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="3x2" data-label="3:2 横版">
+                                            <span class="ratio-preview landscape wide"></span>
+                                            <span class="ratio-option-label">3:2</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="2x3" data-label="2:3 竖版">
+                                            <span class="ratio-preview portrait wide"></span>
+                                            <span class="ratio-option-label">2:3</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="5x4" data-label="5:4 标准">
+                                            <span class="ratio-preview landscape poster"></span>
+                                            <span class="ratio-option-label">5:4</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="4x5" data-label="4:5 海报">
+                                            <span class="ratio-preview portrait medium"></span>
+                                            <span class="ratio-option-label">4:5</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="1x1" data-label="1:1">
+                                            <span class="ratio-preview square"></span>
+                                            <span class="ratio-option-label">1:1</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="8x1" data-label="8:1 超宽横幅">
+                                            <span class="ratio-preview landscape extra-banner"></span>
+                                            <span class="ratio-option-label">8:1</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="1x8" data-label="1:8 超长图">
+                                            <span class="ratio-preview portrait extra-tall"></span>
+                                            <span class="ratio-option-label">1:8</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="4x1" data-label="4:1 横幅">
+                                            <span class="ratio-preview landscape banner"></span>
+                                            <span class="ratio-option-label">4:1</span>
+                                        </button>
+                                        <button class="ratio-option" type="button" data-value="1x4" data-label="1:4 长图">
+                                            <span class="ratio-preview portrait tall"></span>
+                                            <span class="ratio-option-label">1:4</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="chip-wrap">
+                                <div class="chip-select count-chip" id="countChip" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false">
+                                    <span class="chip-title">数量</span>
+                                    <span class="chip-value" id="countLabel">1</span>
+                                </div>
+                                <div class="count-popover popover" id="countPopover" hidden>
+                                    <div class="count-grid" id="countGrid">
+                                        <button class="count-option active" type="button" data-value="1">1</button>
+                                        <button class="count-option" type="button" data-value="2">2</button>
+                                        <button class="count-option" type="button" data-value="3">3</button>
+                                        <button class="count-option" type="button" data-value="4">4</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button class="btn-submit" id="submitBtn" onclick="submitTask()">
+                            <span class="btn-submit-label">生成</span>
+                            <span class="btn-submit-icon">↑</span>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="preview-list" id="previewList"></div>
